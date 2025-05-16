@@ -3,7 +3,7 @@
 chrome.browserAction.onClicked.addListener((tab) => {
   chrome.tabs.create(
     {
-      url: chrome.extension.getURL('listen1.html'),
+      url: chrome.extension.getURL('downloader.html'),
     },
     (new_tab) => {
       // Tab opened.

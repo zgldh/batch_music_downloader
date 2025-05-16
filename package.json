@@ -1,6 +1,6 @@
 {
-  "name": "listen1_chrome_extension",
-  "version": "2.32.0",
+  "name": "batch_music_downloader",
+  "version": "1.0.0",
   "description": "one for all free music in china",
   "main": "index.js",
   "scripts": {
