@@ -26,11 +26,14 @@ angular.module('listenone').controller('DownloaderController', [
               resolve([]);
               return;
             }
-
-            const extracted = matches.map(match => ({
-              requester: match[1].trim() || '匿名',
-              song: match[2].trim()
-            }));
+            const extracted = matches.map(match => {
+              // 去掉 requester 前后的空格、半角冒号、全角冒号
+              let requester = match[1].replace(/^[\s:：]+|[\s:：]+$/g, '') || '匿名';
+              return {
+                requester,
+                song: match[2].trim()
+              };
+            });
 
             resolve(extracted);
           } catch (err) {
@@ -123,7 +126,7 @@ angular.module('listenone').controller('DownloaderController', [
               const xhr = new XMLHttpRequest();
               xhr.open('GET', bootinfo.url, true);
               xhr.responseType = 'blob';
-              
+
               xhr.onprogress = (event) => {
                 if (event.lengthComputable) {
                   const percent = Math.round((event.loaded / event.total) * 100);
@@ -138,7 +141,7 @@ angular.module('listenone').controller('DownloaderController', [
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `${index+1}_${$scope.songs[index].requester}_${selectedTrack.title}_${selectedTrack.artist}.mp3`.replace(/[\\/:*?"<>|]/g, '_');
+                  a.download = `${index + 1}_${$scope.songs[index].requester}_${selectedTrack.title}_${selectedTrack.artist}.mp3`.replace(/[\\/:*?"<>|]/g, '_');
                   a.style.display = 'none';
                   document.body.appendChild(a);
                   a.click();
