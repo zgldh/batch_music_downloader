@@ -5,144 +5,221 @@
 /* global angular i18next sourceList platformSourceList */
 angular.module('listenone').controller('DownloaderController', [
   '$scope',
-  ($scope) => {
-    let defaultLang = 'zh-CN';
-    const supportLangs = ['zh-CN', 'en-US'];
-    if (supportLangs.indexOf(navigator.language) !== -1) {
-      defaultLang = navigator.language;
-    }
-    if (supportLangs.indexOf(localStorage.getObject('language')) !== -1) {
-      defaultLang = localStorage.getObject('language');
-    }
-    $scope.lastestVersion = '';
-    $scope.theme = '';
-    $scope.proxyModes = [
-      { name: 'system', displayId: '_PROXY_SYSTEM' },
-      { name: 'direct', displayId: '_PROXY_DIRECT' },
-      { name: 'custom', displayId: '_PROXY_CUSTOM' },
-    ];
-
-    [$scope.proxyModeInput] = $scope.proxyModes;
-    [$scope.proxyMode] = $scope.proxyModes;
-    $scope.proxyProtocols = ['http', 'https', 'quic', 'socks4', 'socks5'];
-
-    $scope.proxyProtocol = 'http';
-    $scope.proxyRules = '';
-
-    $scope.changeProxyProtocol = (newProtocol) => {
-      $scope.proxyProtocol = newProtocol;
-    };
-
-    $scope.changeProxyMode = (newMode) => {
-      $scope.proxyModeInput = newMode;
-    };
-
-    $scope.setProxyConfig = () => {
-      const mode = $scope.proxyModeInput.name;
-      $scope.proxyMode = $scope.proxyModeInput;
-      const host = document.getElementById('proxy-rules-host').value;
-      const port = document.getElementById('proxy-rules-port').value;
-      $scope.proxyRules = `${$scope.proxyProtocol}://${host}:${port}`;
-      if (isElectron()) {
-        const message = 'update_proxy_config';
-        const { ipcRenderer } = require('electron');
-        if (mode === 'system' || mode === 'direct') {
-          ipcRenderer.send('control', message, { mode });
-        } else {
-          ipcRenderer.send('control', message, {
-            proxyRules: $scope.proxyRules,
-          });
-        }
-      }
-    };
-
-    $scope.getProxyConfig = () => {
-      if (isElectron()) {
-        // get proxy config from main process
-        const message = 'get_proxy_config';
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.send('control', message);
-      }
-    };
+  '$timeout',
+  ($scope, $timeout) => {
+    $scope.inputText = '';
+    $scope.songs = [];
+    $scope.isLoading = false;
+    $scope.error = '';
 
     $scope.init = () => {
-      $scope.getProxyConfig();
     };
 
-    if (isElectron()) {
-      const { ipcRenderer } = require('electron');
+    $scope.extractSongInfo = (text) => {
+      return new Promise(resolve => {
+        $timeout(() => {
+          try {
+            const pattern = /(.*?)点歌[:：]\s*(.+)/g;
+            let matches = [...text.matchAll(pattern)];
 
-      ipcRenderer.on('proxyConfig', (event, config) => {
-        // parse config
-        if (config.mode === 'system' || config.mode === 'direct') {
-          [$scope.proxyMode] = $scope.proxyModes.filter(
-            (i) => i.name === config.mode
-          );
-          $scope.proxyModeInput = $scope.proxyMode;
-          $scope.proxyRules = '';
-        } else {
-          [$scope.proxyMode] = $scope.proxyModes.filter(
-            (i) => i.name === 'custom'
-          );
-          $scope.proxyModeInput = $scope.proxyMode;
-          $scope.proxyRules = config.proxyRules;
-          // rules = 'socks5://127.0.0.1:1080'
-          const match = /(\w+):\/\/([\d.]+):(\d+)/.exec(config.proxyRules);
-          const [, protocol, host, port] = match;
+            if (!matches.length) {
+              resolve([]);
+              return;
+            }
 
-          $scope.proxyProtocol = protocol;
-          document.getElementById('proxy-rules-host').value = host;
-          document.getElementById('proxy-rules-port').value = port;
-        }
-      });
-    }
-    $scope.setLang = (langKey) => {
-      // You can change the language during runtime
-      i18next.changeLanguage(langKey).then((t) => {
-        axios.get('i18n/zh-CN.json').then((res) => {
-          Object.keys(res.data).forEach((key) => {
-            $scope[key] = t(key);
-          });
-          sourceList.forEach((item) => {
-            item.displayText = t(item.displayId);
-          });
-          platformSourceList.forEach((item) => {
-            item.displayText = t(item.displayId);
-          });
-          $scope.proxyModes.forEach((item) => {
-            item.displayText = t(item.displayId);
-          });
-        });
-        localStorage.setObject('language', langKey);
+            const extracted = matches.map(match => ({
+              requester: match[1].trim() || '匿名',
+              song: match[2].trim()
+            }));
+
+            resolve(extracted);
+          } catch (err) {
+            resolve([]);
+          }
+        }, 1500);
       });
     };
-    $scope.setLang(defaultLang);
 
-    let defaultTheme = 'white';
-    if (localStorage.getObject('theme') !== null) {
-      defaultTheme = localStorage.getObject('theme');
-    }
-    $scope.setTheme = (theme) => {
-      $scope.theme = theme;
+    $scope.processSongs = async (songInfos) => {
+      const newSongs = songInfos.map(info => ({
+        requester: info.requester,
+        song: info.song,
+        searchStatus: 'searching',
+        downloadStatus: 'pending',
+        progress: 0,
+        /**
+         * Example item structure in tracks:
+         * {
+         *   album: "No Protection",
+         *   album_id: "nealbum_1995776",
+         *   artist: "Starship",
+         *   artist_id: "neartist_74939",
+         *   id: "netrack_21680447",
+         *   img_url: "https://p1.music.126.net/fNjCgSDoEegZWgKD2UGjaA==/109951166677563218.jpg",
+         *   source: "netease",
+         *   source_url: "https://music.163.com/#/song?id=21680447",
+         *   title: "Nothing's Gonna Stop Us Now"
+         * }
+         */
+        tracks: [],
+      }));
 
-      const themeFiles = {
-        white: ['css/iparanoid.css', 'css/common.css'],
-        black: ['css/origin.css', 'css/common.css'],
-        white2: ['css/iparanoid2.css', 'css/common2.css'],
-        black2: ['css/origin2.css', 'css/common2.css'],
-      };
-      // You can change the language during runtime
-      if (themeFiles[theme] !== undefined) {
-        const keys = ['theme-css', 'common-css'];
-        for (let i = 0; i < themeFiles[theme].length; i += 1) {
-          document.getElementById(keys[i]).href = themeFiles[theme][i];
-        }
-        localStorage.setObject('theme', theme);
+      $timeout(() => {
+        $scope.songs = newSongs;
+      });
+
+      for (let i = 0; i < newSongs.length; i++) {
+        MediaService.search("allmusic", {
+          keywords: newSongs[i].song,
+          curpage: 1,
+          type: 0,
+        }).success(function (response) {
+          if (response && response.total > 0) {
+            $timeout(() => {
+              $scope.songs[i].searchStatus = 'found';
+              $scope.songs[i].downloadStatus = 'pending';
+              $scope.songs[i].tracks = response.result;
+              $scope.songs[i].selectedTrack = response.result[0].id;
+            });
+          } else {
+            $timeout(() => {
+              $scope.songs[i].searchStatus = 'not_found';
+            });
+          }
+        })
+
+        // await new Promise(resolve => $timeout(resolve, 800));
+
+        // $timeout(() => {
+        //   $scope.songs[i].searchStatus = Math.random() > 0.2 ? 'found' : 'not_found';
+
+        //   if ($scope.songs[i].searchStatus === 'found') {
+        //     $scope.simulateDownload(i);
+        //   }
+        // });
       }
-      axios.get('images/feather-sprite.svg').then((res) => {
-        document.getElementById('feather-container').innerHTML = res.data;
+    };
+
+    $scope.download = (index) => {
+      return new Promise(resolve => {
+        const selectedTrack = $scope.songs[index].tracks.find(t => t.id === $scope.songs[index].selectedTrack);
+        if (!selectedTrack) {
+          $timeout(() => {
+            $scope.songs[index].error = '请选择要下载的歌曲版本';
+            $scope.songs[index].downloadStatus = 'pending';
+          });
+          return resolve();
+        }
+
+        $timeout(() => {
+          $scope.songs[index].downloadStatus = 'downloading';
+          $scope.songs[index].progress = 0;
+        });
+
+        MediaService.bootstrapTrack(
+          selectedTrack,
+          (bootinfo) => {
+            $timeout(() => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('GET', bootinfo.url, true);
+              xhr.responseType = 'blob';
+              
+              xhr.onprogress = (event) => {
+                if (event.lengthComputable) {
+                  const percent = Math.round((event.loaded / event.total) * 100);
+                  $scope.songs[index].progress = percent;
+                  $scope.$apply();
+                }
+              };
+
+              xhr.onload = () => {
+                if (xhr.status === 200) {
+                  const blob = xhr.response;
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${index+1}_${$scope.songs[index].requester}_${selectedTrack.title}_${selectedTrack.artist}.mp3`.replace(/[\\/:*?"<>|]/g, '_');
+                  a.style.display = 'none';
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+
+                  $scope.songs[index].downloadStatus = 'completed';
+                  $scope.$apply();
+                  resolve();
+                } else {
+                  $scope.songs[index].error = '下载失败';
+                  $scope.songs[index].downloadStatus = 'pending';
+                  $scope.$apply();
+                  resolve();
+                }
+              };
+
+              xhr.onerror = () => {
+                $scope.songs[index].error = '下载失败';
+                $scope.songs[index].downloadStatus = 'pending';
+                $scope.$apply();
+                resolve();
+              };
+
+              xhr.send();
+            });
+          },
+          () => {
+            $timeout(() => {
+              $scope.songs[index].error = '下载失败';
+              $scope.songs[index].downloadStatus = 'pending';
+              resolve();
+            });
+          }
+        );
       });
     };
-    $scope.setTheme(defaultTheme);
+
+    $scope.handleExtract = async () => {
+      $timeout(() => {
+        if (!$scope.inputText.trim()) {
+          $scope.error = '请输入符合格式的点歌请求';
+          return;
+        }
+
+        $scope.error = '';
+        $scope.isLoading = true;
+      });
+
+      try {
+        const songInfos = await $scope.extractSongInfo($scope.inputText);
+        $timeout(() => {
+          $scope.isLoading = false;
+          if (songInfos.length === 0) {
+            $scope.error = '未检测到符合格式的点歌请求，请以"点歌："开头标注歌曲名称';
+            return;
+          }
+          $scope.processSongs(songInfos);
+        });
+      } catch (err) {
+        $timeout(() => {
+          $scope.error = '点歌信息提取失败';
+          $scope.isLoading = false;
+        });
+      }
+    };
+
+    $scope.getStatusColor = (status) => {
+      switch (status) {
+        case 'searching':
+        case 'downloading':
+          return '#3b82f6'; // blue-500
+        case 'found':
+        case 'completed':
+          return '#10b981'; // green-500
+        case 'not_found':
+          return '#ef4444'; // red-500
+        case 'pending':
+        default:
+          return '#6b7280'; // gray-500
+      }
+    };
   },
 ]);

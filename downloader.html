@@ -12,15 +12,12 @@
 
   <link href="css/notyf.min.css" rel="stylesheet" />
   <link href="css/notyf_custom.css" rel="stylesheet" />
-
   <link href="css/hotkeys.css" rel="stylesheet" />
   <link href="css/icon.css" rel="stylesheet" />
-
   <link href="css/origin.css" rel="stylesheet" id="theme-css" />
   <link href="css/common.css" rel="stylesheet" id="common-css" />
-
-  <link href="images/logo_16.png" rel="shortcut icon" />
-  <link href="images/logo_16.png" rel="bookmark" />
+  <link href="images/logo.jpg" rel="shortcut icon" />
+  <link href="images/logo.jpg" rel="bookmark" />
   <script>
     if (typeof module === 'object') {
       window.module = module;
@@ -58,14 +55,7 @@
   <script type="text/javascript" src="js/loweb.js"></script>
   <script type="text/javascript" src="js/l1_player.js"></script>
   <script type="text/javascript" src="js/app.js"></script>
-  <script type="text/javascript" src="js/controller/profile.js"></script>
-  <script type="text/javascript" src="js/controller/auth.js"></script>
-  <script type="text/javascript" src="js/controller/navigation.js"></script>
-  <script type="text/javascript" src="js/controller/my_playlist.js"></script>
-  <script type="text/javascript" src="js/controller/platform.js"></script>
-  <script type="text/javascript" src="js/controller/playlist.js"></script>
-  <script type="text/javascript" src="js/controller/play.js"></script>
-  <script type="text/javascript" src="js/controller/instant_search.js"></script>
+  <script type="text/javascript" src="js/controller/downloader.js"></script>
   <script>
     if (window.module) module = window.module;
   </script>
@@ -73,22 +63,130 @@
 </head>
 
 <body>
-  <div ng-controller="DownloaderController" ng-init="init()">
+  <div ng-controller="DownloaderController" ng-init="init()" style="min-height: 100vh; padding: 24px;">
+    <div style="max-width: 56rem; margin: 0 auto">
+      <header style="text-align: center; margin-bottom: 40px">
+        <h1 style="font-size: 30px; font-weight: bold; margin-bottom: 8px">智能点歌系统</h1>
+        <p style="color: #4b5563">支持识别点歌人信息，格式：[点歌人]点歌：歌曲名称</p>
+      </header>
 
+      <div
+        style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); padding: 24px; margin-bottom: 32px">
+        <textarea ng-model="inputText" placeholder="请使用标准格式输入：
+张三点歌：光年之外
+李四 点歌：起风了
+点歌：晴天
+王五点歌：她说" rows="8"
+          style="background: #000; color: white; width: calc(100% - 32px); padding: 16px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; transition: all 0.2s ease"></textarea>
+        <button ng-click="handleExtract()" ng-disabled="isLoading"
+          style="margin-top: 16px; width: 100%; padding: 12px 16px; background: #2563eb; color: white; border-radius: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center"
+          ng-style="{'opacity': isLoading ? 0.7 : 1, 'cursor': isLoading ? 'not-allowed' : 'pointer', 'background': !isLoading ? '#2563eb' : '#2563eb'}">
+          <span ng-if="isLoading" style="display: flex; align-items: center; justify-content: center;">
+            <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" style="margin-right: 8px;" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+            <span>处理中...</span>
+          </span>
+          <span ng-if="!isLoading" style="display: flex; align-items: center; justify-content: center;">
+            <svg class="w-5 h-5 mr-2" style="margin-right: 8px;" viewBox="0 0 24 24" fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M21 21L15 15M17 10C17 13.866 13.8658 17 10 17C6.13418 17 3 13.8658 3 10C3 6.13418 6.13418 3 10 3C13.8658 3 17 6.13418 17 10Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>提取并下载</span>
+          </span>
+        </button>
+        <p ng-if="error" style="margin-top: 8px; color: #ef4444; font-size: 14px">{{error}}</p>
+      </div>
+
+      <div ng-if="songs.length > 0"
+        style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); padding: 24px">
+        <h2 style="font-size: 20px; color: #4b5563; font-weight: 600; margin-bottom: 16px">识别结果</h2>
+
+        <div style="display: flex; flex-direction: column; gap: 16px">
+          <div ng-repeat="song in songs track by $index"
+            style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; transition: all 0.2s ease">
+            <div style="display: flex; align-items: center; justify-content: space-between">
+              <div>
+                <h3 style="font-weight: 500; ">{{$index+1}}. <span> 点歌人：<span
+                      style="font-weight: 500">{{song.requester}}</span></span> {{song.song}}</h3>
+              </div>
+              <div style="display: flex; flex-direction: row; gap: 8px; align-items: flex-end">
+                <div style="display: flex; align-items: center">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; margin-right: 4px" ng-style="{
+                      'background-color': song.searchStatus === 'searching' ? '#3b82f6' : 
+                                         song.searchStatus === 'found' || song.downloadStatus === 'completed' ? '#10b981' : 
+                                         song.searchStatus === 'not_found' ? '#ef4444' : '#9ca3af'
+                    }"></span>
+                  <span style="font-size: 14px; color: #4b5563">
+                    {{song.searchStatus === 'searching' ? '搜索中...' :
+                    song.searchStatus === 'found' ? '已找到' : '未找到'}}
+                  </span>
+                </div>
+                <div ng-if="song.searchStatus === 'found'" style="display: flex; align-items: center">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; margin-right: 4px" ng-style="{
+                      'background-color': song.downloadStatus === 'downloading' ? '#3b82f6' : 
+                                         song.downloadStatus === 'completed' ? '#10b981' : 
+                                         '#9ca3af'
+                    }"></span>
+                  <span style="font-size: 14px; color: #4b5563">
+                    {{song.downloadStatus === 'pending' ? '等待下载' :
+                    song.downloadStatus === 'completed' ? '下载完成' : '下载中'}}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div ng-if="song.searchStatus === 'found' && song.tracks.length > 0" style="margin-top: 8px">
+              <select ng-model="song.selectedTrack"
+                style="background: #000; color: white; width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 8px">
+                <option ng-repeat="track in song.tracks track by $index" value="{{track.id}}">
+                  {{$index+1}}. [{{track.source}}] {{track.title}} - {{track.artist}} ({{track.album}})
+                </option>
+              </select>
+            </div>
+            <div ng-if="song.searchStatus === 'found' && song.downloadStatus === 'pending'" style="margin-top: 8px">
+              <button ng-click="download($index)"
+                style="width: 100%; padding: 8px; background: #2563eb; color: white; border-radius: 4px; border: none">
+                下载
+              </button>
+            </div>
+            <div ng-if="song.searchStatus === 'found' && song.downloadStatus === 'downloading'" style="margin-top: 8px">
+              <div
+                style="display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; margin-bottom: 4px">
+                <span>下载进度</span>
+                <span>{{song.progress.toFixed(0)}}%</span>
+              </div>
+              <div style="width: 100%; background: #e5e7eb; border-radius: 9999px; height: 8px">
+                <div style="background: #2563eb; height: 8px; border-radius: 9999px; transition: all 0.3s ease-out"
+                  ng-style="{
+                    width: song.progress+'%'
+                  }"></div>
+              </div>
+            </div>
+
+            <div ng-if="song.error || song.searchStatus === 'not_found'"
+              style="margin-top: 8px; font-size: 14px; color: #ef4444">
+              {{song.error || '未找到匹配的歌曲'}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+  <footer style="margin-top: 48px; text-align: center; color: #6b7280; font-size: 14px;">
+    <span>
+      Powered by
+      <a href="https://github.com/zgldh/batch_music_downloader" target="_blank"
+        style="color: #2563eb; text-decoration: underline;">
+        batch_music_downloader zgldh
+      </a>
+    </span>
+  </footer>
 </body>
-<!-- <script type="text/javascript">
-    window.onload=function(){
-      let li = document.querySelectorAll(".footer .cover li")
-      for(let i=0;i<li.length-1;i++){
-          li[i].className="hid"
-        }
-      li[li.length-3].className="def"
-      li[li.length-2].className="a"
-      li[0].className="b"
-      li[1].className="c"
-      li[2].className="def"
-    }
-  </script> -->
 
 </html>

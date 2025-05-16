@@ -30,14 +30,14 @@
     "persistent": true
   },
   "browser_action": {
-    "default_icon": "images/logo.png",
+    "default_icon": "images/logo.jpg",
     "default_title": "Batch Music Downloader"
   },
   "description": "One for all free music in China",
   "icons": {
-    "128": "images/logo.png",
-    "16": "images/logo_16.png",
-    "48": "images/logo_48.png"
+    "128": "images/logo.jpg",
+    "16": "images/logo.jpg",
+    "48": "images/logo.jpg"
   },
   "manifest_version": 2,
   "name": "Batch Music Downloader",
