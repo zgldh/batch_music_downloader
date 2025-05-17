@@ -7,6 +7,30 @@ angular.module('listenone').controller('DownloaderController', [
   '$scope',
   '$timeout',
   ($scope, $timeout) => {
+    // Helper function to calculate string similarity
+    const levenshteinDistance = (a, b) => {
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+      
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          const cost = a[j-1] === b[i-1] ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i-1][j] + 1,
+            matrix[i][j-1] + 1,
+            matrix[i-1][j-1] + cost
+          );
+        }
+      }
+      return matrix[b.length][a.length];
+    };
     $scope.inputText = '';
     $scope.songs = [];
     $scope.isLoading = false;
@@ -74,17 +98,33 @@ angular.module('listenone').controller('DownloaderController', [
 
       for (let i = 0; i < newSongs.length; i++) {
         await new Promise(resolve => $timeout(resolve, 2000));
-        MediaService.search("allmusic", {
+            MediaService.search("allmusic", {
           keywords: newSongs[i].song,
           curpage: 1,
           type: 0,
         }).success(function (response) {
           if (response && response.total > 0) {
+            // Sort results by relevance to search query
+            const searchStr = newSongs[i].song.toLowerCase();
+            const sortedResults = response.result.sort((a, b) => {
+              const aStr = `${a.title} ${a.artist}`.toLowerCase();
+              const bStr = `${b.title} ${b.artist}`.toLowerCase();
+              
+              // Exact matches come first
+              if (aStr.includes(searchStr)) return -1;
+              if (bStr.includes(searchStr)) return 1;
+              
+              // Then closest matches
+              const aDist = levenshteinDistance(searchStr, aStr);
+              const bDist = levenshteinDistance(searchStr, bStr);
+              return aDist - bDist;
+            });
+
             $timeout(() => {
               $scope.songs[i].searchStatus = 'found';
               $scope.songs[i].downloadStatus = 'pending';
-              $scope.songs[i].tracks = response.result;
-              $scope.songs[i].selectedTrack = response.result[0].id;
+              $scope.songs[i].tracks = sortedResults;
+              $scope.songs[i].selectedTrack = sortedResults[0].id;
             });
           } else {
             $timeout(() => {
