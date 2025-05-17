@@ -123,7 +123,7 @@
                                          song.searchStatus === 'found' || song.downloadStatus === 'completed' ? '#10b981' : 
                                          song.searchStatus === 'not_found' ? '#ef4444' : '#9ca3af'
                     }"></span>
-                  <span style="font-size: 14px; color: #4b5563">
+                  <span style="font-size: 14px; color: #afb1b5">
                     {{song.searchStatus === 'searching' ? '搜索中...' :
                     song.searchStatus === 'found' ? '已找到' : '未找到'}}
                   </span>
@@ -134,7 +134,7 @@
                                          song.downloadStatus === 'completed' ? '#10b981' : 
                                          '#9ca3af'
                     }"></span>
-                  <span style="font-size: 14px; color: #4b5563">
+                  <span style="font-size: 14px; color: #afb1b5">
                     {{song.downloadStatus === 'pending' ? '等待下载' :
                     song.downloadStatus === 'completed' ? '下载完成' : '下载中'}}
                   </span>
@@ -150,7 +150,7 @@
                 </option>
               </select>
             </div>
-            <div ng-if="song.searchStatus === 'found' && song.downloadStatus === 'pending'" style="margin-top: 8px">
+            <div ng-if="song.searchStatus === 'found' && (song.downloadStatus === 'pending' || song.downloadStatus === 'completed')" style="margin-top: 8px">
               <button ng-click="download($index)"
                 style="width: 100%; padding: 8px; background: #2563eb; color: white; border-radius: 4px; border: none">
                 下载
@@ -168,6 +168,10 @@
                     width: song.progress+'%'
                   }"></div>
               </div>
+              <button ng-click="stopDownload($index)" 
+                style="width: 100%; padding: 8px; background: #ef4444; color: white; border-radius: 4px; border: none; margin-top: 8px">
+                停止下载
+              </button>
             </div>
 
             <div ng-if="song.error || song.searchStatus === 'not_found'"

@@ -11,6 +11,7 @@ angular.module('listenone').controller('DownloaderController', [
     $scope.songs = [];
     $scope.isLoading = false;
     $scope.error = '';
+    $scope.activeDownloads = {};
 
     $scope.init = () => {
     };
@@ -72,6 +73,7 @@ angular.module('listenone').controller('DownloaderController', [
       });
 
       for (let i = 0; i < newSongs.length; i++) {
+        await new Promise(resolve => $timeout(resolve, 2000));
         MediaService.search("allmusic", {
           keywords: newSongs[i].song,
           curpage: 1,
@@ -90,16 +92,6 @@ angular.module('listenone').controller('DownloaderController', [
             });
           }
         })
-
-        // await new Promise(resolve => $timeout(resolve, 800));
-
-        // $timeout(() => {
-        //   $scope.songs[i].searchStatus = Math.random() > 0.2 ? 'found' : 'not_found';
-
-        //   if ($scope.songs[i].searchStatus === 'found') {
-        //     $scope.simulateDownload(i);
-        //   }
-        // });
       }
     };
 
@@ -115,6 +107,7 @@ angular.module('listenone').controller('DownloaderController', [
         }
 
         $timeout(() => {
+          $scope.songs[index].error = '';
           $scope.songs[index].downloadStatus = 'downloading';
           $scope.songs[index].progress = 0;
         });
@@ -124,6 +117,7 @@ angular.module('listenone').controller('DownloaderController', [
           (bootinfo) => {
             $timeout(() => {
               const xhr = new XMLHttpRequest();
+              $scope.activeDownloads[index] = xhr;
               xhr.open('GET', bootinfo.url, true);
               xhr.responseType = 'blob';
 
@@ -149,11 +143,13 @@ angular.module('listenone').controller('DownloaderController', [
                   document.body.removeChild(a);
 
                   $scope.songs[index].downloadStatus = 'completed';
+                  delete $scope.activeDownloads[index];
                   $scope.$apply();
                   resolve();
                 } else {
                   $scope.songs[index].error = '下载失败';
                   $scope.songs[index].downloadStatus = 'pending';
+                  delete $scope.activeDownloads[index];
                   $scope.$apply();
                   resolve();
                 }
@@ -162,6 +158,7 @@ angular.module('listenone').controller('DownloaderController', [
               xhr.onerror = () => {
                 $scope.songs[index].error = '下载失败';
                 $scope.songs[index].downloadStatus = 'pending';
+                delete $scope.activeDownloads[index];
                 $scope.$apply();
                 resolve();
               };
@@ -205,6 +202,18 @@ angular.module('listenone').controller('DownloaderController', [
         $timeout(() => {
           $scope.error = '点歌信息提取失败';
           $scope.isLoading = false;
+        });
+      }
+    };
+
+    $scope.stopDownload = (index) => {
+      if ($scope.activeDownloads[index]) {
+        $scope.activeDownloads[index].abort();
+        delete $scope.activeDownloads[index];
+        $timeout(() => {
+          $scope.songs[index].downloadStatus = 'pending';
+          $scope.songs[index].error = '下载已取消';
+          $scope.$apply();
         });
       }
     };
