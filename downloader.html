@@ -134,9 +134,11 @@
                                          song.downloadStatus === 'completed' ? '#10b981' : 
                                          '#9ca3af'
                     }"></span>
-                  <span style="font-size: 14px; color: #afb1b5">
-                    {{song.downloadStatus === 'pending' ? '等待下载' :
-                    song.downloadStatus === 'completed' ? '下载完成' : '下载中'}}
+                  <span ng-if="song.downloadStatus === 'completed'" style="font-size: 14px; color: white; background: #158661; padding: 2px 6px; border-radius: 4px">
+                    下载完成
+                  </span>
+                  <span ng-if="song.downloadStatus !== 'completed'" style="font-size: 14px; color: #afb1b5">
+                    {{song.downloadStatus === 'pending' ? '等待下载' : '下载中'}}
                   </span>
                 </div>
               </div>
