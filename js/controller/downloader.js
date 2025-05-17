@@ -218,6 +218,22 @@ angular.module('listenone').controller('DownloaderController', [
       }
     };
 
+    $scope.nextTrack = (index) => {
+      if (!$scope.songs[index] || !$scope.songs[index].tracks || $scope.songs[index].tracks.length <= 1) {
+        return;
+      }
+
+      const currentIndex = $scope.songs[index].tracks.findIndex(
+        t => t.id === $scope.songs[index].selectedTrack
+      );
+      const nextIndex = (currentIndex + 1) % $scope.songs[index].tracks.length;
+      
+      $timeout(() => {
+        $scope.songs[index].selectedTrack = $scope.songs[index].tracks[nextIndex].id;
+        $scope.$apply();
+      });
+    };
+
     $scope.getStatusColor = (status) => {
       switch (status) {
         case 'searching':

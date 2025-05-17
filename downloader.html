@@ -151,10 +151,16 @@
               </select>
             </div>
             <div ng-if="song.searchStatus === 'found' && (song.downloadStatus === 'pending' || song.downloadStatus === 'completed')" style="margin-top: 8px">
-              <button ng-click="download($index)"
-                style="width: 100%; padding: 8px; background: #2563eb; color: white; border-radius: 4px; border: none">
-                下载
-              </button>
+              <div style="display: flex; gap: 8px">
+                <button ng-click="download($index)"
+                  style="flex: 1; padding: 8px; background: #2563eb; color: white; border-radius: 4px; border: none">
+                  保存
+                </button>
+                <button ng-click="nextTrack($index)"
+                  style="flex: 1; padding: 8px; background: #6b7280; color: white; border-radius: 4px; border: none">
+                  更换来源
+                </button>
+              </div>
             </div>
             <div ng-if="song.searchStatus === 'found' && song.downloadStatus === 'downloading'" style="margin-top: 8px">
               <div
