@@ -40,6 +40,17 @@ angular.module('listenone').controller('DownloaderController', [
     $scope.init = () => {
     };
 
+    $scope.updateTrackInfo = (index) => {
+      const song = $scope.songs[index];
+      if (!song.selectedTrackId || !song.tracks) return;
+      
+      const track = song.tracks.find(t => t.id === song.selectedTrackId);
+      if (track) {
+        song.selectedTrackHref = track.source_url;
+        song.selectedTrackImgUrl = track.img_url;
+      }
+    };
+
     $scope.extractSongInfo = (text) => {
       return new Promise(resolve => {
         $timeout(() => {
@@ -111,8 +122,15 @@ angular.module('listenone').controller('DownloaderController', [
               const bStr = `${b.title} ${b.artist}`.toLowerCase();
               
               // Exact matches come first
-              if (aStr.includes(searchStr)) return -1;
-              if (bStr.includes(searchStr)) return 1;
+              const aHas = aStr.includes(searchStr);
+              const bHas = bStr.includes(searchStr);
+              
+              if (aHas && bHas) {
+                // When both contain search string, shorter string comes first
+                return aStr.length - bStr.length;
+              }
+              if (aHas) return -1;
+              if (bHas) return 1;
               
               // Then closest matches
               const aDist = levenshteinDistance(searchStr, aStr);
@@ -124,7 +142,9 @@ angular.module('listenone').controller('DownloaderController', [
               $scope.songs[i].searchStatus = 'found';
               $scope.songs[i].downloadStatus = 'pending';
               $scope.songs[i].tracks = sortedResults;
-              $scope.songs[i].selectedTrack = sortedResults[0].id;
+              $scope.songs[i].selectedTrackId = sortedResults[0].id;
+              $scope.songs[i].selectedTrackHref = sortedResults[0].source_url;
+              $scope.songs[i].selectedTrackImgUrl = sortedResults[0].img_url;
             });
           } else {
             $timeout(() => {
@@ -137,7 +157,7 @@ angular.module('listenone').controller('DownloaderController', [
 
     $scope.download = (index) => {
       return new Promise(resolve => {
-        const selectedTrack = $scope.songs[index].tracks.find(t => t.id === $scope.songs[index].selectedTrack);
+        const selectedTrack = $scope.songs[index].tracks.find(t => t.id === $scope.songs[index].selectedTrackId);
         if (!selectedTrack) {
           $timeout(() => {
             $scope.songs[index].error = '请选择要下载的歌曲版本';
@@ -264,12 +284,14 @@ angular.module('listenone').controller('DownloaderController', [
       }
 
       const currentIndex = $scope.songs[index].tracks.findIndex(
-        t => t.id === $scope.songs[index].selectedTrack
+        t => t.id === $scope.songs[index].selectedTrackId
       );
       const nextIndex = (currentIndex + 1) % $scope.songs[index].tracks.length;
       
       $timeout(() => {
-        $scope.songs[index].selectedTrack = $scope.songs[index].tracks[nextIndex].id;
+        $scope.songs[index].selectedTrackId = $scope.songs[index].tracks[nextIndex].id;
+        $scope.songs[index].selectedTrackHref = $scope.songs[index].tracks[nextIndex].source_url;
+        $scope.songs[index].selectedTrackImgUrl = $scope.songs[index].tracks[nextIndex].img_url;
         $scope.$apply();
       });
     };

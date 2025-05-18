@@ -3,6 +3,11 @@
 基于 Listen 1 的 Chrome 插件，可以批量下载音乐。  
 关于 Listen 1 的更多信息，请访问 https://github.com/listen1/listen1_chrome_extension
 
+
+## 截图
+
+![插件截图](screenshot.png)
+
 # Listen 1 (Chrome Extension) V2.32.0
 
 （最后更新于 2024 年 4 月 1 日）
