@@ -196,16 +196,3 @@ try {
     ['requestHeaders', 'blocking']
   );
 }
-
-/**
- * Get tokens.
- */
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type !== 'code') {
-    return;
-  }
-
-  GithubClient.github.handleCallback(request.code);
-  sendResponse();
-});
