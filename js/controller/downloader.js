@@ -126,7 +126,26 @@ angular.module('listenone').controller('DownloaderController', [
               const bHas = bStr.includes(searchStr);
               
               if (aHas && bHas) {
-                // When both contain search string, shorter string comes first
+                // When both contain search string, check title and artist matches
+                const aTitleHas = searchStr.includes(a.title.toLowerCase());
+                const bTitleHas = searchStr.includes(b.title.toLowerCase());
+                
+                const aArtistHas = searchStr.includes(a.artist.toLowerCase());
+                const bArtistHas = searchStr.includes(b.artist.toLowerCase());
+                
+                // 1. Both title and artist match
+                if (aTitleHas && aArtistHas && !(bTitleHas && bArtistHas)) return -1;
+                if (!(aTitleHas && aArtistHas) && bTitleHas && bArtistHas) return 1;
+                
+                // 2. Only title matches
+                if (aTitleHas && !bTitleHas) return -1;
+                if (!aTitleHas && bTitleHas) return 1;
+                
+                // 3. Only artist matches
+                if (aArtistHas && !bArtistHas) return -1;
+                if (!aArtistHas && bArtistHas) return 1;
+                
+                // If all conditions are same, shorter string comes first
                 return aStr.length - bStr.length;
               }
               if (aHas) return -1;
