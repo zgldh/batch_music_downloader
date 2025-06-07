@@ -77,28 +77,34 @@
 点歌：晴天
 王五点歌：她说" rows="8"
           style="background: #000; color: white; width: calc(100% - 32px); padding: 16px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; transition: all 0.2s ease"></textarea>
-        <button ng-click="handleExtract()" ng-disabled="isLoading"
-          style="margin-top: 16px; width: 100%; padding: 12px 16px; background: #2563eb; color: white; border-radius: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center"
-          ng-style="{'opacity': isLoading ? 0.7 : 1, 'cursor': isLoading ? 'not-allowed' : 'pointer', 'background': !isLoading ? '#2563eb' : '#2563eb'}">
-          <span ng-if="isLoading" style="display: flex; align-items: center; justify-content: center;">
-            <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" style="margin-right: 8px;" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-              </path>
-            </svg>
-            <span>处理中...</span>
-          </span>
-          <span ng-if="!isLoading" style="display: flex; align-items: center; justify-content: center;">
-            <svg class="w-5 h-5 mr-2" style="margin-right: 8px;" viewBox="0 0 24 24" fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M21 21L15 15M17 10C17 13.866 13.8658 17 10 17C6.13418 17 3 13.8658 3 10C3 6.13418 6.13418 3 10 3C13.8658 3 17 6.13418 17 10Z"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span>提取并下载</span>
-          </span>
-        </button>
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button ng-click="handleExtract()" ng-disabled="isLoading"
+            style="flex: 1; padding: 12px 16px; background: #2563eb; color: white; border-radius: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center"
+            ng-style="{'opacity': isLoading ? 0.7 : 1, 'cursor': isLoading ? 'not-allowed' : 'pointer', 'background': !isLoading ? '#2563eb' : '#2563eb'}">
+            <span ng-if="isLoading" style="display: flex; align-items: center; justify-content: center;">
+              <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" style="margin-right: 8px;" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <span>处理中...</span>
+            </span>
+            <span ng-if="!isLoading" style="display: flex; align-items: center; justify-content: center;">
+              <svg class="w-5 h-5 mr-2" style="margin-right: 8px;" viewBox="0 0 24 24" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M21 21L15 15M17 10C17 13.866 13.8658 17 10 17C6.13418 17 3 13.8658 3 10C3 6.13418 6.13418 3 10 3C13.8658 3 17 6.13418 17 10Z"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>搜索</span>
+            </span>
+          </button>
+          <button ng-click="clearResults()"
+            style="flex: 1; padding: 12px 16px; background: #6b7280; color: white; border-radius: 8px; font-weight: 500; display: flex; align-items: center; justify-content: center">
+            清空搜索结果
+          </button>
+        </div>
         <p ng-if="error" style="margin-top: 8px; color: #ef4444; font-size: 14px">{{error}}</p>
       </div>
 

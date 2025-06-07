@@ -37,6 +37,18 @@ angular.module('listenone').controller('DownloaderController', [
     $scope.error = '';
     $scope.activeDownloads = {};
 
+    // 清空搜索结果函数
+    $scope.clearResults = function() {
+      // 取消所有正在进行的下载
+      for (let index in $scope.activeDownloads) {
+        if ($scope.activeDownloads.hasOwnProperty(index)) {
+          $scope.activeDownloads[index].abort();
+        }
+      }
+      $scope.activeDownloads = {};
+      $scope.songs = []; // 清空歌曲列表
+    };
+
     $scope.init = () => {
     };
 
@@ -79,7 +91,7 @@ angular.module('listenone').controller('DownloaderController', [
       });
     };
 
-    $scope.processSongs = async (songInfos) => {
+    $scope.processSongs = async (songInfos, append = false) => {
       const newSongs = songInfos.map(info => ({
         requester: info.requester,
         song: info.song,
@@ -103,11 +115,18 @@ angular.module('listenone').controller('DownloaderController', [
         tracks: [],
       }));
 
+      const startIndex = append ? $scope.songs.length : 0;
+
       $timeout(() => {
-        $scope.songs = newSongs;
+        if (append) {
+          $scope.songs = [...$scope.songs, ...newSongs];
+        } else {
+          $scope.songs = newSongs;
+        }
       });
 
       for (let i = 0; i < newSongs.length; i++) {
+        const songIndex = startIndex + i;
         await new Promise(resolve => $timeout(resolve, 2000));
             MediaService.search("allmusic", {
           keywords: newSongs[i].song,
@@ -158,16 +177,16 @@ angular.module('listenone').controller('DownloaderController', [
             });
 
             $timeout(() => {
-              $scope.songs[i].searchStatus = 'found';
-              $scope.songs[i].downloadStatus = 'pending';
-              $scope.songs[i].tracks = sortedResults;
-              $scope.songs[i].selectedTrackId = sortedResults[0].id;
-              $scope.songs[i].selectedTrackHref = sortedResults[0].source_url;
-              $scope.songs[i].selectedTrackImgUrl = sortedResults[0].img_url;
+              $scope.songs[songIndex].searchStatus = 'found';
+              $scope.songs[songIndex].downloadStatus = 'pending';
+              $scope.songs[songIndex].tracks = sortedResults;
+              $scope.songs[songIndex].selectedTrackId = sortedResults[0].id;
+              $scope.songs[songIndex].selectedTrackHref = sortedResults[0].source_url;
+              $scope.songs[songIndex].selectedTrackImgUrl = sortedResults[0].img_url;
             });
           } else {
             $timeout(() => {
-              $scope.songs[i].searchStatus = 'not_found';
+              $scope.songs[songIndex].searchStatus = 'not_found';
             });
           }
         })
@@ -275,7 +294,8 @@ angular.module('listenone').controller('DownloaderController', [
             $scope.error = '未检测到符合格式的点歌请求，请以"点歌："开头标注歌曲名称';
             return;
           }
-          $scope.processSongs(songInfos);
+          // 追加新结果而不是覆盖
+          $scope.processSongs(songInfos, true);
         });
       } catch (err) {
         $timeout(() => {
